@@ -19,6 +19,22 @@ ENV DEBIAN_FRONTEND noninteractive
 
 ENV HOME "/root"
 
+
+RUN apt-add-repository ppa:brightbox/ruby-ng
+RUN apt-get update
+RUN apt-get -y install --no-install-recommends \
+    curl \
+    openjdk-8-jdk \
+    unzip \
+    zip \
+    git \
+    ruby2.4 \
+    ruby2.4-dev \
+    build-essential \
+    file \
+    ssh
+
+
 RUN apt-get --quiet update --yes
 RUN apt-get --quiet install --yes wget tar unzip lib32stdc++6 lib32z1
 RUN wget --quiet --output-document=android-sdk.zip https://dl.google.com/android/repository/sdk-tools-linux-${ANDROID_SDK_TOOLS}.zip
