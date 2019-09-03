@@ -19,8 +19,15 @@ ENV DEBIAN_FRONTEND noninteractive
 
 ENV HOME "/root"
 
-RUN apt-add-repository ppa:brightbox/ruby-ng
 RUN apt-get update
+
+RUN add-apt-repository -y ppa:brightbox/ruby-ng
+RUN apt-get update -y
+
+# Install Ruby
+RUN apt-get install -y ruby2.2 ruby2.2-dev
+
+
 RUN apt-get -y install --no-install-recommends \
     curl \
     openjdk-8-jdk \
