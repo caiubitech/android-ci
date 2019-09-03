@@ -1,59 +1,31 @@
-FROM openjdk:8-jdk-alpine
 
+FROM openjdk:8
 MAINTAINER Bruno Santiago <https://github.com/brsantiago> | <https://github.com/caiubitech>
 
-CMD ["/sbin/my_init"]
+ENV ANDROID_HOME /opt/android-sdk-linux
 
-ENV LC_ALL "en_US.UTF-8"
-ENV LANGUAGE "en_US.UTF-8"
-ENV LANG "en_US.UTF-8"
+# Download Android SDK into $ANDROID_HOME
+# You can find URL to the current version at: https://developer.android.com/studio/index.html
 
-ENV VERSION_SDK_TOOLS "4333796"
-ENV VERSION_BUILD_TOOLS "28.0.3"
-ENV VERSION_TARGET_SDK "28"
+ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/tools/bin:${ANDROID_HOME}/platform-tools
 
-ENV ANDROID_HOME "/sdk"
-
-ENV PATH "$PATH:${ANDROID_HOME}/tools:${ANDROID_HOME}/tools/bin:${ANDROID_HOME}/platform-tools"
-ENV DEBIAN_FRONTEND noninteractive
-
-ENV HOME "/root"
-
-RUN apt-get update
-
-RUN add-apt-repository -y ppa:brightbox/ruby-ng
-RUN apt-get update -y
-
-# Install Ruby
-RUN apt-get install -y ruby2.2 ruby2.2-dev
-
-
-RUN apt-get -y install --no-install-recommends \
-    curl \
-    openjdk-8-jdk \
-    unzip \
-    zip \
-    git \
-    ruby2.4 \
-    ruby2.4-dev \
-    build-essential \
-    file \
-    ssh
-
-ADD https://dl.google.com/android/repository/sdk-tools-linux-${VERSION_SDK_TOOLS}.zip /tools.zip
-RUN unzip /tools.zip -d /sdk && rm -rf /tools.zip
-
-RUN yes | ${ANDROID_HOME}/tools/bin/sdkmanager --licenses
-
-RUN mkdir -p $HOME/.android && touch $HOME/.android/repositories.cfg
-RUN ${ANDROID_HOME}/tools/bin/sdkmanager "platform-tools" "tools" "platforms;android-${VERSION_TARGET_SDK}" "build-tools;${VERSION_BUILD_TOOLS}"
-RUN ${ANDROID_HOME}/tools/bin/sdkmanager "extras;android;m2repository" "extras;google;google_play_services" "extras;google;m2repository"
-
-RUN gem install fastlane
-
-ADD id_rsa $HOME/.ssh/id_rsa
-ADD id_rsa.pub $HOME/.ssh/id_rsa.pub
-ADD adbkey $HOME/.android/adbkey
-ADD adbkey.pub $HOME/.android/adbkey.pub
-
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN mkdir -p ${ANDROID_HOME} && \
+    cd ${ANDROID_HOME} && \
+    wget -q https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip -O android_tools.zip && \
+    unzip android_tools.zip && \
+    rm android_tools.zip &&  \
+    yes | sdkmanager --licenses && \
+    sdkmanager 'platform-tools' && \
+    sdkmanager 'platforms;android-28' && \
+    sdkmanager 'build-tools;28.0.3' && \
+    sdkmanager 'extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.2' && \
+    sdkmanager 'extras;m2repository;com;android;support;constraint;constraint-layout;1.0.2' && \
+    sdkmanager 'extras;google;m2repository' && \
+    sdkmanager 'extras;android;m2repository' && \
+    sdkmanager 'extras;google;google_play_services' && \
+    apt-get update &&  apt-get install --no-install-recommends -y build-essential ca-certificates  git ruby2.3-dev \
+    && update-ca-certificates \
+    && gem install fastlane \
+    && gem install bundler \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && apt-get autoremove -y && apt-get clean
