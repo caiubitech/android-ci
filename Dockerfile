@@ -1,31 +1,36 @@
 
-FROM openjdk:8
-MAINTAINER Bruno Santiago <https://github.com/brsantiago> | <https://github.com/caiubitech>
 
-ENV ANDROID_HOME /opt/android-sdk-linux
+FROM openjdk:8-jdk
 
-# Download Android SDK into $ANDROID_HOME
-# You can find URL to the current version at: https://developer.android.com/studio/index.html
+LABEL MAINTAINER Bruno Santiago <https://github.com/brsantiago> | <https://github.com/caiubitech>
 
-ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/tools/bin:${ANDROID_HOME}/platform-tools
 
-RUN mkdir -p ${ANDROID_HOME} && \
-    cd ${ANDROID_HOME} && \
-    wget -q https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip -O android_tools.zip && \
-    unzip android_tools.zip && \
-    rm android_tools.zip &&  \
-    yes | sdkmanager --licenses && \
-    sdkmanager 'platform-tools' && \
-    sdkmanager 'platforms;android-28' && \
-    sdkmanager 'build-tools;28.0.3' && \
-    sdkmanager 'extras;m2repository;com;android;support;constraint;constraint-layout-solver;1.0.2' && \
-    sdkmanager 'extras;m2repository;com;android;support;constraint;constraint-layout;1.0.2' && \
-    sdkmanager 'extras;google;m2repository' && \
-    sdkmanager 'extras;android;m2repository' && \
-    sdkmanager 'extras;google;google_play_services' && \
-    apt-get update &&  apt-get install --no-install-recommends -y build-essential ca-certificates  git ruby2.3-dev \
-    && update-ca-certificates \
-    && gem install fastlane \
-    && gem install bundler \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && apt-get autoremove -y && apt-get clean
+# Just matched `app/build.gradle`
+ENV ANDROID_COMPILE_SDK "26"
+# Just matched `app/build.gradle`
+ENV ANDROID_BUILD_TOOLS "28.0.3"
+# Version from https://developer.android.com/studio/releases/sdk-tools
+ENV ANDROID_SDK_TOOLS "24.4.1"
+
+ENV ANDROID_HOME /android-sdk-linux
+ENV PATH="${PATH}:/android-sdk-linux/platform-tools/"
+
+# install OS packages
+RUN apt-get --quiet update --yes
+RUN apt-get --quiet install --yes wget tar unzip lib32stdc++6 lib32z1 build-essential ruby ruby-dev
+# We use this for xxd hex->binary
+RUN apt-get --quiet install --yes vim-common
+# install Android SDK
+RUN wget --quiet --output-document=android-sdk.tgz https://dl.google.com/android/android-sdk_r${ANDROID_SDK_TOOLS}-linux.tgz
+RUN tar --extract --gzip --file=android-sdk.tgz
+RUN echo y | android-sdk-linux/tools/android --silent update sdk --no-ui --all --filter android-${ANDROID_COMPILE_SDK}
+RUN echo y | android-sdk-linux/tools/android --silent update sdk --no-ui --all --filter platform-tools
+RUN echo y | android-sdk-linux/tools/android --silent update sdk --no-ui --all --filter build-tools-${ANDROID_BUILD_TOOLS}
+RUN echo y | android-sdk-linux/tools/android --silent update sdk --no-ui --all --filter extra-android-m2repository
+RUN echo y | android-sdk-linux/tools/android --silent update sdk --no-ui --all --filter extra-google-google_play_services
+RUN echo y | android-sdk-linux/tools/android --silent update sdk --no-ui --all --filter extra-google-m2repository
+# install Fastlane
+COPY Gemfile.lock .
+COPY Gemfile .
+RUN gem install bundle
+RUN bundle install
